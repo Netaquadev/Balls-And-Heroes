@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>📄 BALLS & HEROES: STORY EDITION 📄</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: 'Caveat', cursive;
+            background: #e8d5b0;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            position: fixed;
+            touch-action: none;
+        }
+        body::before {
+            content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(45deg, rgba(139,69,19,0.06) 0px, rgba(139,69,19,0.06) 2px, transparent 2px, transparent 8px);
+            pointer-events: none; z-index: 1;
+        }
+        #gameCanvas { background: #f5e6ca; width: 100%; height: 100%; display: block; }
+        
+        .screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: flex-start;
+            background: #e8d5b0; z-index: 50; padding: 15px;
+            overflow-y: auto;
+        }
+        #menuScreen { display: flex; }
+        #gameScreen, #profileScreen, #multiplayerScreen, #creditsScreen, #codeScreen, #clickerScreen, #shopScreen, #aprilScreen, #inventoryScreen, #storyScreen, #chapterScreen { display: none; }
+        
+        h1 {
+            font-family: 'Caveat', cursive; font-size: 3.5em; color: #2a1000;
+            margin: 10px 0; border-bottom: 5px dashed #6b3410; padding-bottom: 10px;
+            text-shadow: 3px 3px 0 rgba(107,52,16,0.15);
+        }
+        h2 { font-family: 'Caveat', cursive; color: #2a1000; font-size: 2.5em; }
+        
+        .menu-buttons { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 400px; margin-top: 15px; }
+        
+        .paper-button {
+            padding: 18px 25px; background: #f5e6ca; color: #2a1000;
+            border: 4px solid #6b3410; border-radius: 50px 15px 50px 15px;
+            font-family: 'Caveat', cursive; font-size: 28px; font-weight: bold; 
+            box-shadow: 8px 8px 0 rgba(107,52,16,0.25);
+            cursor: pointer; text-align: center; 
+            background: linear-gradient(145deg, #f5e6ca, #efe0c0);
+            transition: all 0.1s;
+        }
+        .paper-button:active { transform: translate(5px,5px); box-shadow: 3px 3px 0 rgba(107,52,16,0.25); }
+        
+        .back-btn { position: absolute; top: 15px; left: 15px; padding: 12px 25px; z-index: 60; }
+        .profile-btn { position: absolute; top: 15px; right: 15px; padding: 12px 25px; z-index: 60; }
+        
+        .game-hud { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; justify-content: space-between; z-index: 60; }
+        .stats {
+            background: rgba(245,230,202,0.95); color: #2a1000; padding: 14px 28px;
+            border-radius: 50px; font-size: 26px; font-weight: bold; 
+            border: 4px solid #6b3410; box-shadow: 5px 5px 0 rgba(107,52,16,0.2);
+        }
+        
+        .boss-health {
+            position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
+            width: 300px; height: 30px; background: #1a1a1a;
+            border: 4px solid #6b3410; border-radius: 30px; overflow: hidden;
+            z-index: 60; display: none;
+        }
+        .boss-health-fill { height: 100%; background: linear-gradient(90deg, #dc2626, #fbbf24); width: 100%; }
+        .boss-name { position: absolute; top: -25px; left: 10px; color: #2a1000; font-size: 20px; font-weight: bold; }
+        
+        .controls { position: absolute; bottom: 170px; left: 25px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; z-index: 60; }
+        .mobile-btn {
+            width: 90px; height: 90px; background: linear-gradient(145deg, #f5e6ca, #efe0c0);
+            border: 5px solid #6b3410; border-radius: 35% 65% 35% 65%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 48px; font-weight: bold; color: #2a1000;
+            box-shadow: 8px 8px 0 rgba(107,52,16,0.25);
+            cursor: pointer;
+        }
+        .mobile-btn:active { transform: translate(6px,6px); box-shadow: 2px 2px 0 rgba(107,52,16,0.25); }
+        .btn-up { grid-column: 2; }
+        .btn-left { grid-column: 1; grid-row: 2; }
+        .btn-down { grid-column: 2; grid-row: 2; }
+        .btn-right { grid-column: 3; grid-row: 2; }
+        
+        .action-panel { position: absolute; bottom: 170px; right: 25px; display: flex; flex-direction: column; gap: 18px; z-index: 60; }
+        .action-btn {
+            width: 100px; height: 100px; background: linear-gradient(145deg, #f5e6ca, #efe0c0);
+            border: 5px solid #6b3410; border-radius: 35% 65% 35% 65%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: 22px; font-weight: bold; color: #2a1000;
+            box-shadow: 8px 8px 0 rgba(107,52,16,0.25);
+            cursor: pointer;
+        }
+        .action-btn:active { transform: translate(6px,6px); box-shadow: 2px 2px 0 rgba(107,52,16,0.25); }
+        .action-btn span { font-size: 44px; margin-bottom: 3px; }
+        
+        .character-selector { position: absolute; top: 85px; left: 15px; right: 15px; display: flex; gap: 12px; z-index: 55; }
+        .character-selector select {
+            flex: 1; padding: 14px; background: linear-gradient(145deg, #f5e6ca, #efe0c0);
+            border: 4px solid #6b3410; border-radius: 35px;
+            font-family: 'Caveat', cursive; font-size: 22px; font-weight: bold; color: #2a1000;
+        }
+        
+        .chapter-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;
+            width: 100%; max-width: 400px; margin-top: 20px;
+        }
+        .chapter-card {
+            background: linear-gradient(145deg, #f5e6ca, #efe0c0);
+            border: 4px solid #6b3410; border-radius: 30px; padding: 20px;
+            text-align: center; box-shadow: 6px 6px 0 rgba(107,52,16,0.2);
+            cursor: pointer;
+        }
+        .chapter-card.locked { opacity: 0.5; }
+        .chapter-emoji { font-size: 50px; display: block; margin-bottom: 10px; }
+        .chapter-name { font-size: 24px; color: #2a1000; font-weight: bold; }
+        
+        .level-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;
+            width: 100%; max-width: 350px; margin-top: 20px;
+        }
+        .level-card {
+            background: linear-gradient(145deg, #f5e6ca, #efe0c0);
+            border: 3px solid #6b3410; border-radius: 25px; padding: 15px;
+            text-align: center; box-shadow: 4px 4px 0 rgba(107,52,16,0.2);
+            cursor: pointer;
+        }
+        .level-card.boss { border-color: #dc2626; background: linear-gradient(145deg, #fecaca, #fca5a5); }
+        .level-emoji { font-size: 35px; display: block; }
+        .level-name { font-size: 18px; color: #2a1000; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<!-- ГЛАВНОЕ МЕНЮ -->
+<div class="screen" id="menuScreen">
+    <h1>📄 BALLS & HEROES 📄</h1>
+    <div class="menu-buttons">
+        <button class="paper-button" onclick="showStoryScreen()">📖 СЮЖЕТ</button>
+        <button class="paper-button" onclick="startGame('sandbox')">🎮 ПЕСОЧНИЦА</button>
+        <button class="paper-button" onclick="startGame('attack')">⚔️ АРЕНА</button>
+        <button class="paper-button" onclick="showInventoryScreen()">🎒 ИНВЕНТАРЬ</button>
+        <button class="paper-button" onclick="showClickerScreen()">🎯 КЛИКЕР</button>
+        <button class="paper-button" onclick="showShopScreen()">🛒 МАГАЗИН</button>
+        <button class="paper-button" onclick="showCodeScreen()">🔢 КОДЫ</button>
+        <button class="paper-button" onclick="showCredits()">📜 ТИТРЫ</button>
+    </div>
+    <button class="paper-button profile-btn" onclick="showProfile()">👤 ПРОФИЛЬ</button>
+</div>
+
+<!-- СЮЖЕТ - ВЫБОР ГЛАВЫ -->
+<div class="screen" id="storyScreen">
+    <button class="paper-button back-btn" onclick="backToMenu()">← НАЗАД</button>
+    <h1>📖 СЮЖЕТ</h1>
+    <div class="chapter-grid">
+        <div class="chapter-card" onclick="showChapter(1)">
+            <span class="chapter-emoji">🌋</span>
+            <span class="chapter-name">ВУЛКАН</span>
+        </div>
+        <div class="chapter-card locked" id="chapter2Card" onclick="showChapter(2)">
+            <span class="chapter-emoji">🕳️</span>
+            <span class="chapter-name">ПОДЗЕМЕЛЬЕ</span>
+        </div>
+        <div class="chapter-card locked" id="chapter3Card" onclick="showChapter(3)">
+            <span class="chapter-emoji">🌊</span>
+            <span class="chapter-name">ОКЕАН</span>
+        </div>
+        <div class="chapter-card locked" id="chapter4Card" onclick="showChapter(4)">
+            <span class="chapter-emoji">🔥</span>
+            <span class="chapter-name">АД</span>
+        </div>
+    </div>
+    <p style="margin-top:20px;font-size:22px;color:#2a1000;">Пройди главу, чтобы открыть следующую!</p>
+</div>
+
+<!-- СЮЖЕТ - ВЫБОР УРОВНЯ -->
+<div class="screen" id="chapterScreen">
+    <button class="paper-button back-btn" onclick="backToStory()">← НАЗАД</button>
+    <h1 id="chapterTitle">🌋 ВУЛКАН</h1>
+    <div class="level-grid" id="levelGrid"></div>
+</div>
+
+<!-- ИГРОВОЙ ЭКРАН -->
+<div class="screen" id="gameScreen">
+    <div class="game-hud">
+        <div class="stats" id="stats">❤️ 100 | 📦 0</div>
+        <button class="paper-button" style="padding:10px 25px;font-size:22px;" onclick="backToStory()">🏠 СЮЖЕТ</button>
+    </div>
+    
+    <div class="boss-health" id="bossHealth">
+        <div class="boss-name" id="bossName">👾 БОСС</div>
+        <div class="boss-health-fill" id="bossHealthFill"></div>
+    </div>
+    
+    <div class="character-selector">
+        <select id="characterSelect" onchange="changeCharacter()"></select>
+    </div>
+    
+    <div class="controls">
+        <div class="mobile-btn btn-up" id="btnUp">⬆️</div>
+        <div class="mobile-btn btn-left" id="btnLeft">⬅️</div>
+        <div class="mobile-btn btn-down" id="btnDown">⬇️</div>
+        <div class="mobile-btn btn-right" id="btnRight">➡️</div>
+    </div>
+    
+    <div class="action-panel">
+        <div class="action-btn" id="btnAttack"><span>💥</span>АТАКА</div>
+        <div class="action-btn" id="btnSpecial"><span>⚡</span>СПЕЦ</div>
+    </div>
+    
+    <canvas id="gameCanvas"></canvas>
+</div>
+
+<!-- ОСТАЛЬНЫЕ ЭКРАНЫ (сокращены для компактности) -->
+<div class="screen" id="profileScreen"><button class="paper-button back-btn" onclick="backToMenu()">← НАЗАД</button><h1>👤 ПРОФИЛЬ</h1></div>
+<div class="screen" id="codeScreen"><button class="paper-button back-btn" onclick="backToMenu()">← НАЗАД</button><h1>🔢 КОДЫ</h1></div>
+<div class="screen" id="creditsScreen"><button class="paper-button back-btn" onclick="backToMenu()">← НАЗАД</button><h1>📜 ТИТРЫ</h1></div>
+<div class="screen" id="inventoryScreen"><button class="paper-button back-btn" onclick="backToMenu()">← НАЗАД</button><h1>🎒 ИНВЕНТАРЬ</h1></div>
+<div class="screen" id="shopScreen"><button class="paper-button back-btn" onclick="backToMenu()">← НАЗАД</button><h1>🛒 МАГАЗИН</h1></div>
+<div class="screen" id="clickerScreen"><button class="paper-button back-btn" onclick="backToMenu()">← НАЗАД</button><h1>🎯 КЛИКЕР</h1></div>
+
+<script>
+(function(){
+    "use strict";
+    
+    // ========== ДАННЫЕ ==========
+    let currency = 500;
+    let unlockedSkins = ['default'];
+    let unlockedWeapons = ['wrench', 'fists'];
+    let currentSkin = 'default';
+    let currentWeapon = 'wrench';
+    let selectedCharacter = 'worker';
+    let infiniteMoney = false;
+    
+    // Сюжетный прогресс
+    let storyProgress = {
+        chapter: 1,
+        level: 1,
+        unlockedChapters: [1],
+        completedLevels: []
+    };
+    
+    // ГЛАВЫ
+    const CHAPTERS = {
+        1: { name: 'ВУЛКАН', emoji: '🌋', levels: 4, boss: 'lavabunny' },
+        2: { name: 'ПОДЗЕМЕЛЬЕ', emoji: '🕳️', levels: 4, boss: 'baby' },
+        3: { name: 'ОКЕАН', emoji: '🌊', levels: 4, boss: 'kraken' },
+        4: { name: 'АД', emoji: '🔥', levels: 4, boss: 'firecube' }
+    };
+    
+    // БОССЫ
+    const BOSSES = {
+        lavabunny: { e:'🐰🔥', n:'ЛАВОВЫЙ КРОЛИК', c:'#ff6600', s:3, h:500, size:60, attacks: ['fireball', 'jump'] },
+        baby: { e:'🤖', n:'МАЛЫШ', c:'#ec4899', s:4, h:600, size:55, attacks: ['laser', 'icecream'] },
+        kraken: { e:'🐙', n:'ЧУДОВИЩЕ ВПАДИНЫ', c:'#1e293b', s:3.5, h:700, size:70, attacks: ['tentacle', 'ink'] },
+        firecube: { e:'🔥📦', n:'ГИГАНТСКИЙ КВАДРАТ', c:'#dc2626', s:2.5, h:1000, size:80, attacks: ['meteor', 'firebreath'] }
+    };
+    
+    // 50+ ПЕРСОНАЖЕЙ (сокращённый список)
+    const CHARACTERS = {
+        worker: {e:'👷',n:'Рабочий',c:'#3b82f6',s:5,h:110, acc:'helmet', w:'wrench', sp:'repair'},
+        ninja: {e:'🥷',n:'Ниндзя',c:'#1e293b',s:7,h:75, acc:'mask', w:'shuriken', sp:'dash'},
+        hulk: {e:'💪',n:'Халк',c:'#22c55e',s:4,h:210, acc:'shorts', w:'fists', sp:'smash'},
+        wizard: {e:'🧙',n:'Маг',c:'#8b5cf6',s:5,h:95, acc:'hat', w:'staff', sp:'fireball'},
+        knight: {e:'🛡️',n:'Рыцарь',c:'#808080',s:4,h:170, acc:'armor', w:'sword', sp:'block'},
+        dragon: {e:'🐉',n:'Дракон',c:'#dc2626',s:6,h:180, acc:'wings', w:'fire', sp:'firebreath'},
+        slime: {e:'👑',n:'Админ Слизень',c:'#ffd700',s:6,h:999, acc:'crown', w:'slime', sp:'godmode', admin:true}
+    };
+    
+    const WEAPONS = {
+        wrench: {e:'🔧',n:'Ключ',d:25,c:'#c0c0c0'}, shuriken: {e:'✨',n:'Сюрикен',d:30,c:'#94a3b8'},
+        fists: {e:'👊',n:'Кулаки',d:20,c:'#22c55e'}, staff: {e:'🪄',n:'Посох',d:35,c:'#8b5cf6'},
+        sword: {e:'⚔️',n:'Меч',d:40,c:'#cbd5e1'}, fire: {e:'🔥',n:'Огонь',d:45,c:'#f97316'},
+        slime: {e:'🧪',n:'Слизь',d:20,c:'#84cc16'}
+    };
+    
+    let playerProfile = { nickname: 'Игрок', title: 'Новичок', titles: ['Новичок', 'Герой'] };
+    
+    let gameState = {
+        mode: 'story',
+        chapter: 1, level: 1,
+        player: { x:400, y:300, size:40, speed:5.5, health:110, maxHealth:110, type:'worker', color:'#3b82f6', acc:'helmet', weapon:'wrench', sp:'repair' },
+        blocks: [], enemies: [], boss: null,
+        move: { up: false, down: false, left: false, right: false },
+        meteors: [], lavaParticles: []
+    };
+    
+    // ========== СЮЖЕТНЫЕ ФУНКЦИИ ==========
+    function showStoryScreen() {
+        hideAllScreens();
+        storyScreen.style.display = 'flex';
+        // Обновить блокировку глав
+        for (let i=1; i<=4; i++) {
+            const card = document.getElementById(`chapter${i}Card`);
+            if (card) {
+                if (storyProgress.unlockedChapters.includes(i)) {
+                    card.classList.remove('locked');
+                } else {
+                    card.classList.add('locked');
+                }
+            }
+        }
+    }
+    
+    function showChapter(chapter) {
+        if (!storyProgress.unlockedChapters.includes(chapter)) {
+            alert('Пройдите предыдущую главу!');
+            return;
+        }
+        storyProgress.chapter = chapter;
+        document.getElementById('chapterTitle').textContent = `${CHAPTERS[chapter].emoji} ${CHAPTERS[chapter].name}`;
+        
+        const grid = document.getElementById('levelGrid');
+        grid.innerHTML = '';
+        for (let i=1; i<=CHAPTERS[chapter].levels; i++) {
+            const card = document.createElement('div');
+            card.className = 'level-card';
+            if (i === 4) card.classList.add('boss');
+            card.innerHTML = `<span class="level-emoji">${i===4?'👾':'⚔️'}</span><span class="level-name">УРОВЕНЬ ${i}</span>`;
+            card.addEventListener('click', () => startStoryLevel(chapter, i));
+            grid.appendChild(card);
+        }
+        
+        hideAllScreens();
+        chapterScreen.style.display = 'flex';
+    }
+    
+    function startStoryLevel(chapter, level) {
+        gameState.mode = 'story';
+        gameState.chapter = chapter;
+        gameState.level = level;
+        storyProgress.chapter = chapter;
+        storyProgress.level = level;
+        
+        hideAllScreens();
+        gameScreen.style.display = 'flex';
+        resizeCanvas();
+        initStoryLevel();
+        gameLoop();
+    }
+    
+    function initStoryLevel() {
+        gameState.blocks = []; gameState.enemies = []; gameState.boss = null;
+        gameState.meteors = []; gameState.lavaParticles = [];
+        const w = canvas.width, h = canvas.height;
+        const chapter = gameState.chapter;
+        const level = gameState.level;
+        
+        // Стены
+        gameState.blocks.push({ x:0, y:0, w:w, h:20, color:'#8b6914' });
+        gameState.blocks.push({ x:0, y:h-20, w:w, h:20, color:'#8b6914' });
+        gameState.blocks.push({ x:0, y:0, w:20, h:h, color:'#8b6914' });
+        gameState.blocks.push({ x:w-20, y:0, w:20, h:h, color:'#8b6914' });
+        
+        // Особенности глав
+        if (chapter === 1) {
+            // Вулкан - лава снизу
+            for (let i=0; i<w; i+=30) {
+                gameState.blocks.push({ x:i, y:h-40, w:30, h:10, color:'#ff6600', type:'lava' });
+            }
+        } else if (chapter === 3) {
+            // Океан - рыбы
+            for (let i=0; i<5; i++) {
+                gameState.enemies.push({
+                    x: 100 + Math.random()*(w-200), y: 100 + Math.random()*(h-200),
+                    size: 30, speed: 2, health: 40, max: 40, color: '#3b82f6', type:'fish'
+                });
+            }
+        } else if (chapter === 4) {
+            // Ад - метеориты
+            setInterval(() => {
+                if (gameState.mode === 'story' && gameState.chapter === 4) {
+                    gameState.meteors.push({
+                        x: Math.random()*w, y: -50,
+                        size: 30, speed: 5, color: '#f97316'
+                    });
+                }
+            }, 2000);
+        }
+        
+        // Обычные враги (кубы / треугольники)
+        const enemyCount = 4 + level * 2;
+        for (let i=0; i<enemyCount; i++) {
+            const isTriangle = chapter === 4;
+            gameState.enemies.push({
+                x: 80 + Math.random()*(w-160), y: 80 + Math.random()*(h-160),
+                size: 35, speed: 1.5 + level*0.3, health: 50 + level*15, max: 50 + level*15,
+                color: isTriangle ? '#ffffff' : '#2a1a0a',
+                type: isTriangle ? 'triangle' : 'cube'
+            });
+        }
+        
+        // БОСС на 4 уровне
+        if (level === 4) {
+            const bossData = BOSSES[CHAPTERS[chapter].boss];
+            gameState.boss = {
+                ...bossData,
+                x: w-100, y: h/2,
+                health: bossData.h, maxHealth: bossData.h,
+                attackTimer: 0
+            };
+            document.getElementById('bossHealth').style.display = 'block';
+            document.getElementById('bossName').textContent = bossData.n;
+        } else {
+            document.getElementById('bossHealth').style.display = 'none';
+        }
+        
+        gameState.player.x = w/2; gameState.player.y = h/2;
+        gameState.player.health = gameState.player.maxHealth;
+    }
+    
+    function updateStory() {
+        const p = gameState.player;
+        const w = canvas.width, h = canvas.height;
+        
+        // Движение игрока
+        let dx = 0, dy = 0;
+        if (gameState.move.up) dy -= 1;
+        if (gameState.move.down) dy += 1;
+        if (gameState.move.left) dx -= 1;
+        if (gameState.move.right) dx += 1;
+        
+        if (dx !== 0 || dy !== 0) {
+            const len = Math.hypot(dx, dy);
+            dx = dx/len * p.speed;
+            dy = dy/len * p.speed;
+            
+            let nx = p.x + dx, ny = p.y + dy;
+            if (!collides(nx, ny, p.size/2)) { p.x = nx; p.y = ny; }
+            else {
+                if (!collides(nx, p.y, p.size/2)) p.x = nx;
+                if (!collides(p.x, ny, p.size/2)) p.y = ny;
+            }
+        }
+        
+        p.x = Math.max(p.size/2+20, Math.min(w-p.size/2-20, p.x));
+        p.y = Math.max(p.size/2+20, Math.min(h-p.size/2-20, p.y));
+        
+        // Лава (глава 1)
+        if (gameState.chapter === 1) {
+            gameState.blocks.forEach(b => {
+                if (b.type === 'lava' && Math.hypot(p.x-(b.x+b.w/2), p.y-(b.y+b.h/2)) < 50) {
+                    p.health -= 2;
+                }
+            });
+        }
+        
+        // Метеориты (глава 4)
+        if (gameState.chapter === 4) {
+            gameState.meteors = gameState.meteors.filter(m => {
+                m.y += m.speed;
+                if (m.y > h) return false;
+                if (Math.hypot(p.x-m.x, p.y-m.y) < p.size/2 + m.size) {
+                    p.health -= 20;
+                    return false;
+                }
+                return true;
+            });
+        }
+        
+        // Враги
+        gameState.enemies.forEach(e => {
+            const dx = p.x - e.x, dy = p.y - e.y, d = Math.hypot(dx, dy);
+            if (d < 300) { e.x += (dx/d)*e.speed; e.y += (dy/d)*e.speed; }
+            if (d < p.size/2 + e.size/2) {
+                p.health -= 8;
+                if (p.health <= 0) backToStory();
+            }
+        });
+        gameState.enemies = gameState.enemies.filter(e => e.health > 0);
+        
+        // Босс
+        if (gameState.boss) {
+            const b = gameState.boss;
+            b.attackTimer++;
+            
+            // Атаки босса
+            if (b.attacks) {
+                if (b.attacks.includes('fireball') && b.attackTimer % 60 === 0) {
+                    const ang = Math.atan2(p.y-b.y, p.x-b.x);
+                    gameState.enemies.push({
+                        x: b.x, y: b.y, vx: Math.cos(ang)*6, vy: Math.sin(ang)*6,
+                        size: 15, health: 1, max: 1, color: '#ff6600', type:'fireball'
+                    });
+                }
+                if (b.attacks.includes('laser') && b.attackTimer % 90 === 0) {
+                    // Лазер
+                    if (Math.hypot(p.x-b.x, p.y-b.y) < 200) p.health -= 15;
+                }
+                if (b.attacks.includes('meteor') && b.attackTimer % 120 === 0) {
+                    for (let i=0; i<3; i++) {
+                        gameState.meteors.push({
+                            x: Math.random()*w, y: -50,
+                            size: 25, speed: 7, color: '#dc2626'
+                        });
+                    }
+                }
+            }
+            
+            // Движение босса
+            const dx = p.x - b.x, dy = p.y - b.y, d = Math.hypot(dx, dy);
+            if (d > 100) { b.x += (dx/d)*b.s; b.y += (dy/d)*b.s; }
+            
+            if (d < p.size/2 + b.size) {
+                p.health -= 12;
+                if (p.health <= 0) backToStory();
+            }
+            
+            if (b.health <= 0) {
+                gameState.boss = null;
+                document.getElementById('bossHealth').style.display = 'none';
+                
+                // Разблокировка следующей главы
+                if (gameState.level === 4) {
+                    if (!storyProgress.unlockedChapters.includes(gameState.chapter + 1)) {
+                        storyProgress.unlockedChapters.push(gameState.chapter + 1);
+                    }
+                    alert(`🎉 ГЛАВА ${gameState.chapter} ПРОЙДЕНА!`);
+                    backToStory();
+                } else {
+                    alert(`✅ УРОВЕНЬ ${gameState.level} ПРОЙДЕН!`);
+                    backToStory();
+                }
+            }
+        }
+        
+        // Проверка победы на обычном уровне
+        if (!gameState.boss && gameState.enemies.length === 0) {
+            alert(`✅ УРОВЕНЬ ${gameState.level} ПРОЙДЕН!`);
+            backToStory();
+        }
+    }
+    
+    function drawStory() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Фон в зависимости от главы
+        if (gameState.chapter === 1) {
+            const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            grad.addColorStop(0, '#4a0000'); grad.addColorStop(1, '#ff6600');
+            ctx.fillStyle = grad;
+        } else if (gameState.chapter === 2) {
+            ctx.fillStyle = '#1a0033';
+        } else if (gameState.chapter === 3) {
+            const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            grad.addColorStop(0, '#0284c7'); grad.addColorStop(1, '#0c4a6e');
+            ctx.fillStyle = grad;
+        } else if (gameState.chapter === 4) {
+            ctx.fillStyle = '#1a0000';
+        }
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Лава
+        if (gameState.chapter === 1) {
+            gameState.blocks.forEach(b => {
+                if (b.type === 'lava') {
+                    ctx.fillStyle = b.color;
+                    ctx.fillRect(b.x, b.y, b.w, b.h);
+                    if (Math.random()<0.3) {
+                        ctx.fillStyle = '#ffaa00';
+                        ctx.beginPath(); ctx.arc(b.x+15, b.y-5, 5, 0, Math.PI*2); ctx.fill();
+                    }
+                }
+            });
+        }
+        
+        // Метеориты
+        if (gameState.chapter === 4) {
+            gameState.meteors.forEach(m => {
+                ctx.fillStyle = m.color;
+                ctx.shadowColor = '#ff6600'; ctx.shadowBlur = 20;
+                ctx.beginPath(); ctx.arc(m.x, m.y, m.size, 0, Math.PI*2); ctx.fill();
+                ctx.shadowBlur = 0;
+            });
+        }
+        
+        // Стены
+        gameState.blocks.forEach(b => {
+            if (b.type !== 'lava') {
+                ctx.fillStyle = b.color;
+                ctx.fillRect(b.x, b.y, b.w, b.h);
+            }
+        });
+        
+        // Враги
+        gameState.enemies.forEach(e => {
+            ctx.fillStyle = e.color;
+            if (e.type === 'triangle') {
+                ctx.beginPath(); ctx.moveTo(e.x, e.y-e.size/1.5); ctx.lineTo(e.x-e.size/1.5, e.y+e.size/1.5); ctx.lineTo(e.x+e.size/1.5, e.y+e.size/1.5); ctx.fill();
+                ctx.fillStyle = '#000';
+                ctx.beginPath(); ctx.arc(e.x-8, e.y-5, 5, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(e.x+8, e.y-5, 5, 0, Math.PI*2); ctx.fill();
+            } else if (e.type === 'fish') {
+                ctx.fillStyle = e.color;
+                ctx.beginPath(); ctx.ellipse(e.x, e.y, e.size, e.size/1.5, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.arc(e.x-10, e.y-5, 4, 0, Math.PI*2); ctx.fill();
+            } else {
+                ctx.fillRect(e.x-e.size/2, e.y-e.size/2, e.size, e.size);
+                ctx.fillStyle = '#ff0000';
+                ctx.beginPath(); ctx.arc(e.x-8, e.y-5, 5, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(e.x+8, e.y-5, 5, 0, Math.PI*2); ctx.fill();
+            }
+            ctx.fillStyle = '#00aa00';
+            ctx.fillRect(e.x-e.size/2, e.y-e.size/2-10, e.size*(e.health/e.max), 5);
+        });
+        
+        // Босс
+        if (gameState.boss) {
+            const b = gameState.boss;
+            ctx.fillStyle = b.c;
+            ctx.shadowColor = b.c; ctx.shadowBlur = 30;
+            ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI*2); ctx.fill();
+            ctx.shadowBlur = 0;
+            
+            // Глаза босса
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(b.x-15, b.y-10, 10, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(b.x+15, b.y-10, 10, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(b.x-12, b.y-12, 5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(b.x+18, b.y-12, 5, 0, Math.PI*2); ctx.fill();
+            
+            document.getElementById('bossHealthFill').style.width = (b.health/b.maxHealth*100) + '%';
+        }
+        
+        // Игрок
+        const p = gameState.player;
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = '#00000060'; ctx.shadowBlur = 20;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size/2, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = '#2c1810'; ctx.lineWidth = 5; ctx.stroke();
+        
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(p.x-12, p.y-10, 9, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x+12, p.y-10, 9, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.arc(p.x-10, p.y-12, 5, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x+14, p.y-12, 5, 0, Math.PI*2); ctx.fill();
+        
+        ctx.fillStyle = '#ff0000';
+        ctx.fillRect(p.x-60, p.y-75, 120, 16);
+        ctx.fillStyle = '#00ff00';
+        ctx.fillRect(p.x-60, p.y-75, 120*(p.health/p.maxHealth), 16);
+        
+        statsDiv.textContent = `❤️ ${Math.floor(p.health)} | 👾 ${gameState.enemies.length}`;
+    }
+    
+    function collides(x, y, r) {
+        for (let b of gameState.blocks) {
+            const cx = Math.max(b.x, Math.min(x, b.x+b.w));
+            const cy = Math.max(b.y, Math.min(y, b.y+b.h));
+            if (Math.hypot(x-cx, y-cy) < r) return true;
+        }
+        return false;
+    }
+    
+    function gameLoop() {
+        if (gameState.mode === 'story') {
+            updateStory();
+            drawStory();
+        }
+        requestAnimationFrame(gameLoop);
+    }
+    
+    // ========== УПРАВЛЕНИЕ ==========
+    function bindButton(btn, dir) {
+        btn.addEventListener('mousedown', (e) => { e.preventDefault(); gameState.move[dir] = true; });
+        btn.addEventListener('mouseup', () => { gameState.move[dir] = false; });
+        btn.addEventListener('mouseleave', () => { gameState.move[dir] = false; });
+        btn.addEventListener('touchstart', (e) => { e.preventDefault(); gameState.move[dir] = true; });
+        btn.addEventListener('touchend', () => { gameState.move[dir] = false; });
+    }
+    
+    bindButton(document.getElementById('btnUp'), 'up');
+    bindButton(document.getElementById('btnDown'), 'down');
+    bindButton(document.getElementById('btnLeft'), 'left');
+    bindButton(document.getElementById('btnRight'), 'right');
+    
+    document.getElementById('btnAttack').addEventListener('click', () => {
+        const weapon = WEAPONS[currentWeapon] || WEAPONS.wrench;
+        gameState.enemies.forEach(e => { if (Math.hypot(e.x-gameState.player.x, e.y-gameState.player.y) < 100) e.health -= weapon.d; });
+        if (gameState.boss && Math.hypot(gameState.boss.x-gameState.player.x, gameState.boss.y-gameState.player.y) < 120) {
+            gameState.boss.health -= weapon.d;
+        }
+    });
+    
+    document.getElementById('btnSpecial').addEventListener('click', () => {
+        const p = gameState.player;
+        if (p.sp === 'heal') { p.health = Math.min(p.maxHealth, p.health+40); }
+        else if (p.sp === 'smash') { gameState.enemies.forEach(e => { if (Math.hypot(e.x-p.x, e.y-p.y) < 140) e.health -= 60; }); }
+        else if (p.sp === 'godmode') { p.health = p.maxHealth; }
+        else { gameState.enemies.forEach(e => { if (Math.hypot(e.x-p.x, e.y-p.y) < 120) e.health -= 50; }); }
+    });
+    
+    function populateSelects() {
+        const sel = document.getElementById('characterSelect'); sel.innerHTML = '';
+        for (let k in CHARACTERS) {
+            const o = document.createElement('option'); o.value = k;
+            o.textContent = `${CHARACTERS[k].e} ${CHARACTERS[k].n}`; sel.appendChild(o);
+        }
+    }
+    
+    function changeCharacter() {
+        const k = document.getElementById('characterSelect').value;
+        const d = CHARACTERS[k];
+        selectedCharacter = k;
+        gameState.player.type = k; gameState.player.color = d.c;
+        gameState.player.speed = d.s; gameState.player.maxHealth = d.h;
+        gameState.player.health = Math.min(gameState.player.health, d.h);
+        gameState.player.acc = d.acc; 
+        gameState.player.sp = d.sp;
+        currentWeapon = d.w;
+    }
+    
+    function hideAllScreens() {
+        menuScreen.style.display = 'none'; gameScreen.style.display = 'none';
+        storyScreen.style.display = 'none'; chapterScreen.style.display = 'none';
+        profileScreen.style.display = 'none'; codeScreen.style.display = 'none';
+        creditsScreen.style.display = 'none'; inventoryScreen.style.display = 'none';
+        shopScreen.style.display = 'none'; clickerScreen.style.display = 'none';
+    }
+    
+    function backToMenu() { hideAllScreens(); menuScreen.style.display = 'flex'; }
+    function backToStory() { hideAllScreens(); storyScreen.style.display = 'flex'; }
+    
+    function startGame(mode) {
+        gameState.mode = mode;
+        hideAllScreens();
+        gameScreen.style.display = 'flex';
+        resizeCanvas();
+        if (mode === 'sandbox') {
+            // Инициализация песочницы
+        }
+        gameLoop();
+    }
+    
+    function showProfile() { hideAllScreens(); profileScreen.style.display = 'flex'; }
+    function showInventoryScreen() { hideAllScreens(); inventoryScreen.style.display = 'flex'; }
+    function showShopScreen() { hideAllScreens(); shopScreen.style.display = 'flex'; }
+    function showClickerScreen() { hideAllScreens(); clickerScreen.style.display = 'flex'; }
+    function showCodeScreen() { hideAllScreens(); codeScreen.style.display = 'flex'; }
+    function showCredits() { hideAllScreens(); creditsScreen.style.display = 'flex'; }
+    
+    const menuScreen = document.getElementById('menuScreen');
+    const gameScreen = document.getElementById('gameScreen');
+    const storyScreen = document.getElementById('storyScreen');
+    const chapterScreen = document.getElementById('chapterScreen');
+    const profileScreen = document.getElementById('profileScreen');
+    const codeScreen = document.getElementById('codeScreen');
+    const creditsScreen = document.getElementById('creditsScreen');
+    const inventoryScreen = document.getElementById('inventoryScreen');
+    const shopScreen = document.getElementById('shopScreen');
+    const clickerScreen = document.getElementById('clickerScreen');
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const statsDiv = document.getElementById('stats');
+    
+    function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    
+    populateSelects();
+    window.startGame = startGame;
+    window.backToMenu = backToMenu;
+    window.backToStory = backToStory;
+    window.showStoryScreen = showStoryScreen;
+    window.showChapter = showChapter;
+    window.startStoryLevel = startStoryLevel;
+    window.showProfile = showProfile;
+    window.showInventoryScreen = showInventoryScreen;
+    window.showShopScreen = showShopScreen;
+    window.showClickerScreen = showClickerScreen;
+    window.showCodeScreen = showCodeScreen;
+    window.showCredits = showCredits;
+    window.changeCharacter = changeCharacter;
+})();
+</script>
+</body>
+</html>
